@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canadian Tax Footprint Calculator | TaxGal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #263238;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1120px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #8b1e2d;
+            margin-bottom: 5px;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #607d8b;
+            margin-bottom: 30px;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1.8fr;
+            gap: 40px;
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+        .input-section {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #d8e1e8;
+            height: fit-content;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #455a64;
+        }
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #b0bec5;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        
+        .form-note {
+            color: #607d8b;
+            font-size: 13px;
+            line-height: 1.45;
+            margin: 4px 0 16px;
+        }
+        .form-note a {
+            color: #b3263a;
+            font-weight: 700;
+        }
+button {
+            width: 100%;
+            background-color: #b3263a;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #8b1e2d;
+        }
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            margin-bottom: 25px;
+        }
+        #totalDisplay {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #17212b;
+        }
+        #profileDisplay,
+        #federalSourceDisplay {
+            font-size: 14px;
+            color: #607d8b;
+            text-align: center;
+            font-style: italic;
+            max-width: 520px;
+            line-height: 1.45;
+        }
+        #federalSourceDisplay {
+            margin-top: 8px;
+        }
+        #profileDisplay a,
+        #federalSourceDisplay a {
+            color: #b3263a;
+            font-weight: 600;
+        }
+        .category-tools {
+            width: 100%;
+            max-width: 680px;
+            margin-top: 18px;
+        }
+        .category-detail {
+            background: #f8fafc;
+            border: 1px solid #d8e1e8;
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+        .category-detail h2 {
+            margin: 0 0 8px;
+            color: #17212b;
+            font-size: 20px;
+        }
+        .category-detail .amount {
+            margin: 0 0 10px;
+            color: #8b1e2d;
+            font-weight: 700;
+        }
+        .category-detail p {
+            margin: 0;
+            color: #455a64;
+            line-height: 1.5;
+        }
+        .category-list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .category-list-header h2 {
+            margin: 0;
+            color: #17212b;
+            font-size: 20px;
+        }
+        .print-button {
+            width: auto;
+            margin-top: 0;
+            padding: 10px 14px;
+            white-space: nowrap;
+        }
+        .tax-category-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            border: 1px solid #d8e1e8;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .tax-category-list li {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 14px;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #d8e1e8;
+            color: #37474f;
+        }
+        .tax-category-list li:last-child {
+            border-bottom: none;
+        }
+        .tax-category-list button {
+            width: auto;
+            margin: 0;
+            padding: 7px 10px;
+            background: #f6d9de;
+            color: #8b1e2d;
+            font-size: 14px;
+        }
+        .tax-category-list button:hover {
+            background: #efc3cb;
+        }
+        .tax-category-list .category-amount {
+            font-weight: 700;
+            color: #17212b;
+            white-space: nowrap;
+        }
+        @media (max-width: 560px) {
+            .category-list-header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .print-button {
+                width: 100%;
+            }
+            .tax-category-list li {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .tax-category-list button {
+                width: 100%;
+            }
+        }
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            .input-section,
+            .chart-wrapper,
+            .category-detail,
+            .print-button,
+            #profileDisplay,
+            #federalSourceDisplay {
+                display: none !important;
+            }
+            .layout {
+                display: block;
+            }
+            .output-section {
+                align-items: stretch;
+            }
+            h1,
+            p.subtitle,
+            #totalDisplay {
+                text-align: left;
+            }
+            .category-tools {
+                max-width: none;
+            }
+            .tax-category-list li {
+                grid-template-columns: 1fr auto;
+            }
+            .tax-category-list button {
+                display: none;
+            }
+        }
+    
+    .site-footer .footer-inner { align-items: flex-start; gap: 16px; }
+    .site-footer .footer-inner > p { margin-bottom: 6px; font-weight: 900; }
+    .footer-keywords { color: #64748b; font-size: 0.92rem; margin: 0; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+    .footer-links a { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 9px 13px; border: 1px solid rgba(15, 118, 110, 0.22); border-radius: 999px; background: #ffffff; color: #0f766e; font-weight: 800; text-decoration: none; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
+    .footer-links a:hover { background: #f0fdfa; border-color: rgba(15, 118, 110, 0.42); }
+    @media (max-width: 720px) { .footer-links { justify-content: flex-start; } }
+  </style>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <nav class="site-nav" aria-label="Primary navigation">
+        <a class="site-brand" href="index.html">TaxGal</a>
+        <div class="site-links">
+            <a href="index.html">Calculators</a>
+            <a href="why_taxes_matter.html">Why Taxes Matter</a>
+            <a href="methodology_sources.html">Methodology</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+            <a href="privacy_policy.html">Privacy</a>
+        </div>
+    </nav>
+
+<div class="container">
+    <h1 id="pageTitle">Canada Tax Allocation Calculator</h1>
+    <p class="subtitle" id="pageSubtitle">Enter your tax amounts to estimate how federal, provincial or territorial, and property taxes map to public spending categories.</p>
+
+    <div class="layout">
+        <div class="input-section">
+            <div class="form-group">
+                <label for="provinceSelect" id="provinceLabel">Select Your Province or Territory</label>
+                <select id="provinceSelect" onchange="calculateTaxes()"></select>
+            </div>
+            <div class="form-group">
+                <label for="federalTax" id="federalTaxLabel">Federal Income Tax Paid (C$)</label>
+                <input type="number" id="federalTax" value="16300" min="0">
+            </div>
+            <div class="form-group">
+                <label for="provincialTax" id="provincialTaxLabel">Provincial / Territorial Tax Paid (C$)</label>
+                <input type="number" id="provincialTax" value="7381" min="0">
+            </div>
+            <div class="form-group">
+                <label for="propertyTax" id="propertyTaxLabel">Annual Property Tax Paid (C$)</label>
+                <input type="number" id="propertyTax" value="2361" min="0">
+            </div>
+            <div class="form-note" id="defaultValuesNote">Defaults use 2023 Canada-wide average household amounts: C$23,681 in income taxes and C$2,361 in property/school taxes from Statistics Canada Table 11-10-0222-01. The federal/provincial split is modeled from CRA 2023 T1 final statistics, so it is an educational estimate.</div>
+            <button id="calculateButton" onclick="calculateTaxes()">Calculate Allocation</button>
+        </div>
+
+        <div class="output-section">
+            <div id="totalDisplay">Total Tax Footprint: C$0.00</div>
+            <div class="chart-wrapper">
+                <canvas id="taxChart"></canvas>
+            </div>
+            <div id="profileDisplay">Loading province details...</div>
+            <div id="federalSourceDisplay">
+                Federal model source: <a href="https://www.canada.ca/en/public-services-procurement/services/payments-accounting/public-accounts/2024.html" target="_blank" rel="noopener noreferrer">Public Accounts of Canada</a>.
+            </div>
+            <div class="category-tools">
+                <div class="category-detail" id="categoryDetail">
+                    <h2>Category Details</h2>
+                    <p>Select a donut slice or choose a category from the list to see more detail.</p>
+                </div>
+                <div class="category-list-header">
+                    <h2 id="printableListTitle">Printable Category List</h2>
+                    <button class="print-button" id="printButton" type="button" onclick="printCategoryList()">Print List</button>
+                </div>
+                <ul class="tax-category-list" id="categoryList"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const provincesData = [
+        { name: "Alberta", code: "AB", profile: "ALBERTA", language: "en" },
+        { name: "British Columbia", code: "BC", profile: "BRITISH_COLUMBIA", language: "en" },
+        { name: "Manitoba", code: "MB", profile: "MANITOBA", language: "en" },
+        { name: "New Brunswick / Nouveau-Brunswick", code: "NB", profile: "NEW_BRUNSWICK", language: "bilingual" },
+        { name: "Newfoundland and Labrador", code: "NL", profile: "NEWFOUNDLAND_LABRADOR", language: "en" },
+        { name: "Northwest Territories", code: "NT", profile: "NORTHWEST_TERRITORIES", language: "en" },
+        { name: "Nova Scotia", code: "NS", profile: "NOVA_SCOTIA", language: "en" },
+        { name: "Nunavut", code: "NU", profile: "NUNAVUT", language: "en" },
+        { name: "Ontario", code: "ON", profile: "ONTARIO", language: "en" },
+        { name: "Prince Edward Island", code: "PE", profile: "PRINCE_EDWARD_ISLAND", language: "en" },
+        { name: "Quebec", code: "QC", profile: "QUEBEC", language: "fr" },
+        { name: "Saskatchewan", code: "SK", profile: "SASKATCHEWAN", language: "en" },
+        { name: "Yukon", code: "YT", profile: "YUKON", language: "en" }
+    ];
+
+    const profilesDesc = {
+        "ALBERTA": "Profile: Alberta. Health care, education, infrastructure, and resource-economy services shape this model. Source: <a href=\"https://www.alberta.ca/budget-documents\" target=\"_blank\" rel=\"noopener noreferrer\">Alberta Budget Documents</a>.",
+        "BRITISH_COLUMBIA": "Profile: British Columbia. Health, education, social services, housing, transportation, and climate-related infrastructure receive stronger weights. Source: <a href=\"https://www2.gov.bc.ca/gov/content/governments/finances/public-accounts\" target=\"_blank\" rel=\"noopener noreferrer\">British Columbia Public Accounts</a>.",
+        "MANITOBA": "Profile: Manitoba. Health care is the largest provincial pressure, with education, family services, infrastructure, and northern services also emphasized. Source: <a href=\"https://www.gov.mb.ca/budget2024/\" target=\"_blank\" rel=\"noopener noreferrer\">Manitoba Budget</a>.",
+        "NEW_BRUNSWICK": "Profile: New Brunswick / Profil : Nouveau-Brunswick. Health care, education, vulnerable-population support, housing, and community infrastructure drive the allocation. / Les soins de santé, l'éducation, le soutien aux populations vulnérables, le logement et les infrastructures communautaires orientent la répartition. Source : <a href=\"https://www.gnb.ca/en/gov/budget/prev-budget.html\" target=\"_blank\" rel=\"noopener noreferrer\">New Brunswick Budget / Budget du Nouveau-Brunswick</a>.",
+        "NEWFOUNDLAND_LABRADOR": "Profile: Newfoundland and Labrador. Health care, debt service, education, transportation, and rural or coastal infrastructure are weighted more heavily. Source: <a href=\"https://www.gov.nl.ca/budget/2024/\" target=\"_blank\" rel=\"noopener noreferrer\">Newfoundland and Labrador Budget</a>.",
+        "NORTHWEST_TERRITORIES": "Profile: Northwest Territories. Territorial services, health care, housing, transportation, Indigenous and community services, and public safety receive higher weights. Source: <a href=\"https://www.fin.gov.nt.ca/en/services/budget-2024\" target=\"_blank\" rel=\"noopener noreferrer\">Northwest Territories Budget</a>.",
+        "NOVA_SCOTIA": "Profile: Nova Scotia. Health care is the largest provincial priority, with education, community services, seniors care, and infrastructure also prominent. Source: <a href=\"https://www.novascotia.ca/documents/budget-documents-2024-2025\" target=\"_blank\" rel=\"noopener noreferrer\">Nova Scotia Budget Documents</a>.",
+        "NUNAVUT": "Profile: Nunavut. Health, housing, education, community and government services, and transportation carry especially high weights because of geography and service-delivery costs. Source: <a href=\"https://www.gov.nu.ca/en/department-finance/budget-2024-25\" target=\"_blank\" rel=\"noopener noreferrer\">Nunavut Budget</a>.",
+        "ONTARIO": "Profile: Ontario. Health is the largest program area, followed by education, social services, postsecondary education, justice, and other programs. Source: <a href=\"https://www.ontario.ca/page/public-accounts-2024-25-annual-report\" target=\"_blank\" rel=\"noopener noreferrer\">Ontario Public Accounts</a>.",
+        "PRINCE_EDWARD_ISLAND": "Profile: Prince Edward Island. Health, education, housing, social supports, and local infrastructure shape the province-specific model. Source: <a href=\"https://www.princeedwardisland.ca/en/information/finance/budget-address-2024\" target=\"_blank\" rel=\"noopener noreferrer\">Prince Edward Island Budget</a>.",
+        "QUEBEC": "Profil : Québec. Les soins de santé et les services sociaux, l'éducation et l'enseignement supérieur, le soutien aux familles, les infrastructures et le service de la dette publique sont les principaux éléments pondérés. Source : <a href=\"https://www.quebec.ca/gouvernement/votre-gouvernement/budget-depenses/budget-2024-2025\" target=\"_blank\" rel=\"noopener noreferrer\">Budget de dépenses du Québec</a>.",
+        "SASKATCHEWAN": "Profile: Saskatchewan. Record health, education, municipal revenue sharing, agriculture, infrastructure, and community investments guide this model. Source: <a href=\"https://www.saskatchewan.ca/government/news-and-media/2024/march/20/budget-202425-classrooms-care-and-communities\" target=\"_blank\" rel=\"noopener noreferrer\">Saskatchewan Budget</a>.",
+        "YUKON": "Profile: Yukon. Health care, education, housing, transportation, community services, and northern infrastructure receive higher weights. Source: <a href=\"https://yukon.ca/en/2024-25-budget\" target=\"_blank\" rel=\"noopener noreferrer\">Yukon Budget</a>."
+    };
+
+    const provinceAllocationModels = {
+        "ALBERTA": { h: 0.39, e: 0.22, s: 0.10, n: 0.02, j: 0.06, t: 0.10, l: 0.03, d: 0.03, g: 0.05, pe: 0.42, lprop: 0.38, pj: 0.06, pt: 0.08, pg: 0.06 },
+        "BRITISH_COLUMBIA": { h: 0.37, e: 0.22, s: 0.14, n: 0.03, j: 0.05, t: 0.08, l: 0.04, d: 0.03, g: 0.04, pe: 0.41, lprop: 0.39, pj: 0.06, pt: 0.08, pg: 0.06 },
+        "MANITOBA": { h: 0.41, e: 0.20, s: 0.12, n: 0.05, j: 0.06, t: 0.07, l: 0.03, d: 0.03, g: 0.03, pe: 0.43, lprop: 0.38, pj: 0.06, pt: 0.07, pg: 0.06 },
+        "NEW_BRUNSWICK": { h: 0.40, e: 0.21, s: 0.13, n: 0.02, j: 0.06, t: 0.07, l: 0.03, d: 0.04, g: 0.04, pe: 0.42, lprop: 0.40, pj: 0.06, pt: 0.06, pg: 0.06 },
+        "NEWFOUNDLAND_LABRADOR": { h: 0.39, e: 0.18, s: 0.10, n: 0.03, j: 0.05, t: 0.10, l: 0.03, d: 0.08, g: 0.04, pe: 0.39, lprop: 0.39, pj: 0.05, pt: 0.10, pg: 0.07 },
+        "NORTHWEST_TERRITORIES": { h: 0.30, e: 0.16, s: 0.12, n: 0.10, j: 0.08, t: 0.12, l: 0.05, d: 0.02, g: 0.05, pe: 0.34, lprop: 0.41, pj: 0.07, pt: 0.12, pg: 0.06 },
+        "NOVA_SCOTIA": { h: 0.43, e: 0.18, s: 0.14, n: 0.02, j: 0.05, t: 0.06, l: 0.03, d: 0.05, g: 0.04, pe: 0.42, lprop: 0.40, pj: 0.06, pt: 0.06, pg: 0.06 },
+        "NUNAVUT": { h: 0.25, e: 0.14, s: 0.11, n: 0.13, j: 0.07, t: 0.12, l: 0.11, d: 0.01, g: 0.06, pe: 0.28, lprop: 0.45, pj: 0.06, pt: 0.13, pg: 0.08 },
+        "ONTARIO": { h: 0.43, e: 0.25, s: 0.10, n: 0.01, j: 0.04, t: 0.06, l: 0.02, d: 0.04, g: 0.05, pe: 0.45, lprop: 0.38, pj: 0.06, pt: 0.06, pg: 0.05 },
+        "PRINCE_EDWARD_ISLAND": { h: 0.38, e: 0.22, s: 0.14, n: 0.02, j: 0.05, t: 0.07, l: 0.04, d: 0.04, g: 0.04, pe: 0.40, lprop: 0.41, pj: 0.06, pt: 0.07, pg: 0.06 },
+        "QUEBEC": { h: 0.40, e: 0.24, s: 0.14, n: 0.02, j: 0.04, t: 0.07, l: 0.03, d: 0.04, g: 0.02, pe: 0.44, lprop: 0.38, pj: 0.05, pt: 0.07, pg: 0.06 },
+        "SASKATCHEWAN": { h: 0.36, e: 0.23, s: 0.10, n: 0.04, j: 0.06, t: 0.11, l: 0.04, d: 0.03, g: 0.03, pe: 0.43, lprop: 0.38, pj: 0.06, pt: 0.08, pg: 0.05 },
+        "YUKON": { h: 0.29, e: 0.18, s: 0.13, n: 0.08, j: 0.06, t: 0.11, l: 0.08, d: 0.02, g: 0.05, pe: 0.35, lprop: 0.42, pj: 0.06, pt: 0.11, pg: 0.06 }
+    };
+
+    const categoryDetails = {
+        "Health Care": "Federal health transfers and province or territory spending for hospitals, physicians, public health, long-term care, and related health services.",
+        "Education & Child Care": "Provincial or territorial education spending, child care supports, postsecondary funding, and federal social-transfer support tied to learning and care.",
+        "Seniors & Income Support": "Federal seniors benefits, employment supports, provincial social services, disability supports, child and family services, and affordability programs.",
+        "Indigenous & Northern Services": "Federal Indigenous services plus province or territory programs for northern, remote, Indigenous, housing, language, and community needs.",
+        "Defense & Veterans": "Federal defense, national security, veterans programs, and related services.",
+        "Public Debt Charges": "Estimated share of federal and provincial or territorial taxes used for interest and other public debt charges.",
+        "Justice & Public Safety": "Courts, policing, corrections, emergency management, fire and protective services, and related justice programs.",
+        "Transportation & Infrastructure": "Roads, transit, ferries, airports, public works, water systems, bridges, and capital infrastructure programs.",
+        "Local / Municipal Services": "Municipal services funded mainly through property tax, including local administration, parks, libraries, waste, planning, and community services.",
+        "Government Operations & Other": "General government, finance, regulatory services, economic development, environment, culture, and remaining public programs."
+    };
+
+    const categoryLabels = {
+        en: {
+            "Health Care": "Health Care",
+            "Education & Child Care": "Education & Child Care",
+            "Seniors & Income Support": "Seniors & Income Support",
+            "Indigenous & Northern Services": "Indigenous & Northern Services",
+            "Defense & Veterans": "Defense & Veterans",
+            "Public Debt Charges": "Public Debt Charges",
+            "Justice & Public Safety": "Justice & Public Safety",
+            "Transportation & Infrastructure": "Transportation & Infrastructure",
+            "Local / Municipal Services": "Local / Municipal Services",
+            "Government Operations & Other": "Government Operations & Other"
+        },
+        fr: {
+            "Health Care": "Soins de santé",
+            "Education & Child Care": "Éducation et services de garde",
+            "Seniors & Income Support": "Aînés et soutien du revenu",
+            "Indigenous & Northern Services": "Services autochtones et nordiques",
+            "Defense & Veterans": "Défense et anciens combattants",
+            "Public Debt Charges": "Service de la dette publique",
+            "Justice & Public Safety": "Justice et sécurité publique",
+            "Transportation & Infrastructure": "Transport et infrastructures",
+            "Local / Municipal Services": "Services locaux / municipaux",
+            "Government Operations & Other": "Administration publique et autres"
+        },
+        bilingual: {
+            "Health Care": "Health Care / Soins de santé",
+            "Education & Child Care": "Education & Child Care / Éducation et services de garde",
+            "Seniors & Income Support": "Seniors & Income Support / Aînés et soutien du revenu",
+            "Indigenous & Northern Services": "Indigenous & Northern Services / Services autochtones et nordiques",
+            "Defense & Veterans": "Defense & Veterans / Défense et anciens combattants",
+            "Public Debt Charges": "Public Debt Charges / Service de la dette publique",
+            "Justice & Public Safety": "Justice & Public Safety / Justice et sécurité publique",
+            "Transportation & Infrastructure": "Transportation & Infrastructure / Transport et infrastructures",
+            "Local / Municipal Services": "Local / Municipal Services / Services locaux et municipaux",
+            "Government Operations & Other": "Government Operations & Other / Administration publique et autres"
+        }
+    };
+
+    const categoryDetailsByLanguage = {
+        en: categoryDetails,
+        fr: {
+            "Health Care": "Transferts fédéraux en santé et dépenses provinciales ou territoriales pour les hôpitaux, les médecins, la santé publique, les soins de longue durée et les services connexes.",
+            "Education & Child Care": "Dépenses provinciales ou territoriales en éducation, services de garde, enseignement postsecondaire et soutien fédéral lié à l'apprentissage et aux soins.",
+            "Seniors & Income Support": "Prestations fédérales aux aînés, soutien à l'emploi, services sociaux provinciaux, soutien aux personnes handicapées, services aux enfants et aux familles, et programmes d'abordabilité.",
+            "Indigenous & Northern Services": "Services fédéraux aux Autochtones et programmes provinciaux ou territoriaux pour les besoins nordiques, éloignés, autochtones, communautaires, linguistiques et de logement.",
+            "Defense & Veterans": "Défense fédérale, sécurité nationale, programmes pour les anciens combattants et services connexes.",
+            "Public Debt Charges": "Part estimée des impôts fédéraux et provinciaux ou territoriaux consacrée aux intérêts et autres frais de la dette publique.",
+            "Justice & Public Safety": "Tribunaux, services policiers, services correctionnels, gestion des urgences, incendies, protection publique et programmes de justice connexes.",
+            "Transportation & Infrastructure": "Routes, transport collectif, traversiers, aéroports, travaux publics, réseaux d'eau, ponts et programmes d'infrastructure.",
+            "Local / Municipal Services": "Services municipaux financés surtout par l'impôt foncier, notamment l'administration locale, les parcs, les bibliothèques, les déchets, l'aménagement et les services communautaires.",
+            "Government Operations & Other": "Administration générale, finances, réglementation, développement économique, environnement, culture et autres programmes publics."
+        },
+        bilingual: {
+            "Health Care": "Federal health transfers and provincial spending for health services. / Transferts fédéraux en santé et dépenses provinciales pour les services de santé.",
+            "Education & Child Care": "Education, child care, and postsecondary supports. / Éducation, services de garde et soutien à l'enseignement postsecondaire.",
+            "Seniors & Income Support": "Seniors benefits, social services, family supports, and affordability programs. / Prestations aux aînés, services sociaux, soutien aux familles et programmes d'abordabilité.",
+            "Indigenous & Northern Services": "Indigenous, northern, housing, language, and community needs. / Besoins autochtones, nordiques, de logement, linguistiques et communautaires.",
+            "Defense & Veterans": "Federal defense, security, and veterans programs. / Défense fédérale, sécurité et programmes pour les anciens combattants.",
+            "Public Debt Charges": "Estimated public debt interest and related charges. / Estimation des intérêts et frais liés à la dette publique.",
+            "Justice & Public Safety": "Courts, policing, corrections, emergency services, and public safety. / Tribunaux, services policiers, services correctionnels, urgences et sécurité publique.",
+            "Transportation & Infrastructure": "Roads, transit, public works, bridges, and infrastructure. / Routes, transport collectif, travaux publics, ponts et infrastructures.",
+            "Local / Municipal Services": "Municipal and community services funded mainly by property tax. / Services municipaux et communautaires financés surtout par l'impôt foncier.",
+            "Government Operations & Other": "Government operations and remaining public programs. / Administration publique et autres programmes publics."
+        }
+    };
+
+    const uiText = {
+        en: {
+            pageTitle: "Canada Tax Allocation Calculator",
+            pageSubtitle: "Enter your tax amounts to estimate how federal, provincial or territorial, and property taxes map to public spending categories.",
+            provinceLabel: "Select Your Province or Territory",
+            federalTaxLabel: "Federal Income Tax Paid (C$)",
+            provincialTaxLabel: "Provincial / Territorial Tax Paid (C$)",
+            propertyTaxLabel: "Annual Property Tax Paid (C$)",
+            calculateButton: "Calculate Allocation",
+            totalPrefix: "Total Tax Footprint",
+            federalSource: "Federal model source:",
+            categoryDetailsTitle: "Category Details",
+            categoryDetailsPrompt: "Select a donut slice or choose a category from the list to see more detail.",
+            emptyList: "No tax allocation to display yet.",
+            ofFootprint: "of your tax footprint",
+            moreInfo: "More Info",
+            printableListTitle: "Printable Category List",
+            printButton: "Print List",
+            defaultValuesNote: "Defaults use 2023 Canada-wide average household amounts: C$23,681 in income taxes and C$2,361 in property/school taxes from Statistics Canada Table 11-10-0222-01. The federal/provincial split is modeled from CRA 2023 T1 final statistics, so it is an educational estimate."
+        },
+        fr: {
+            pageTitle: "Calculateur de répartition des impôts au Canada",
+            pageSubtitle: "Entrez vos montants d'impôt pour estimer la répartition des impôts fédéraux, provinciaux ou territoriaux et fonciers par catégorie de dépenses publiques.",
+            provinceLabel: "Sélectionnez votre province ou territoire",
+            federalTaxLabel: "Impôt fédéral sur le revenu payé (C$)",
+            provincialTaxLabel: "Impôt provincial / territorial payé (C$)",
+            propertyTaxLabel: "Impôt foncier annuel payé (C$)",
+            calculateButton: "Calculer la répartition",
+            totalPrefix: "Empreinte fiscale totale",
+            federalSource: "Source du modèle fédéral :",
+            categoryDetailsTitle: "Détails de la catégorie",
+            categoryDetailsPrompt: "Sélectionnez une tranche du graphique ou choisissez une catégorie dans la liste pour voir plus de détails.",
+            emptyList: "Aucune répartition fiscale à afficher pour le moment.",
+            ofFootprint: "de votre empreinte fiscale",
+            moreInfo: "Plus d'info",
+            printableListTitle: "Liste imprimable des catégories",
+            printButton: "Imprimer la liste",
+            defaultValuesNote: "Les valeurs par défaut utilisent les moyennes canadiennes des ménages pour 2023 : 23 681 $ en impôts sur le revenu et 2 361 $ en impôts fonciers/scolaires selon le tableau 11-10-0222-01 de Statistique Canada. La répartition fédérale/provinciale est modélisée à partir des statistiques finales T1 2023 de l’ARC; il s’agit donc d’une estimation éducative."
+        },
+        bilingual: {
+            pageTitle: "Canada Tax Allocation Calculator / Calculateur de répartition des impôts au Canada",
+            pageSubtitle: "Enter your tax amounts to estimate public spending categories. / Entrez vos montants d'impôt pour estimer les catégories de dépenses publiques.",
+            provinceLabel: "Select Your Province or Territory / Sélectionnez votre province ou territoire",
+            federalTaxLabel: "Federal Income Tax Paid (C$) / Impôt fédéral payé (C$)",
+            provincialTaxLabel: "Provincial / Territorial Tax Paid (C$) / Impôt provincial ou territorial payé (C$)",
+            propertyTaxLabel: "Annual Property Tax Paid (C$) / Impôt foncier annuel payé (C$)",
+            calculateButton: "Calculate Allocation / Calculer la répartition",
+            totalPrefix: "Total Tax Footprint / Empreinte fiscale totale",
+            federalSource: "Federal model source / Source du modèle fédéral :",
+            categoryDetailsTitle: "Category Details / Détails de la catégorie",
+            categoryDetailsPrompt: "Select a donut slice or choose a category from the list. / Sélectionnez une tranche du graphique ou une catégorie dans la liste.",
+            emptyList: "No tax allocation to display yet. / Aucune répartition fiscale à afficher pour le moment.",
+            ofFootprint: "of your tax footprint / de votre empreinte fiscale",
+            moreInfo: "More Info / Plus d'info",
+            printableListTitle: "Printable Category List / Liste imprimable des catégories",
+            printButton: "Print List / Imprimer la liste",
+            defaultValuesNote: "Defaults use 2023 Canada-wide average household amounts: C$23,681 in income taxes and C$2,361 in property/school taxes from Statistics Canada Table 11-10-0222-01. / Les valeurs par défaut utilisent les moyennes canadiennes des ménages pour 2023."
+        }
+    };
+
+    let taxChart = null;
+    let currentCategoryData = [];
+    let currentTotalTax = 0;
+    let currentLanguage = "en";
+
+    function getText(key) {
+        return uiText[currentLanguage][key] || uiText.en[key];
+    }
+
+    function getCategoryLabel(categoryName) {
+        return categoryLabels[currentLanguage][categoryName] || categoryLabels.en[categoryName] || categoryName;
+    }
+
+    function getCategoryDetail(categoryName) {
+        const details = categoryDetailsByLanguage[currentLanguage] || categoryDetailsByLanguage.en;
+        return details[categoryName] || categoryDetails[categoryName] || "This category represents one part of the estimated tax allocation.";
+    }
+
+    function applyLanguage(language) {
+        currentLanguage = language;
+        const ids = [
+            "pageTitle",
+            "pageSubtitle",
+            "provinceLabel",
+            "federalTaxLabel",
+            "provincialTaxLabel",
+            "propertyTaxLabel",
+            "calculateButton",
+            "printableListTitle",
+            "printButton",
+            "defaultValuesNote"
+        ];
+
+        ids.forEach(id => {
+            document.getElementById(id).innerText = getText(id);
+        });
+
+        document.getElementById('federalSourceDisplay').innerHTML = `${getText('federalSource')} <a href="https://www.canada.ca/en/public-services-procurement/services/payments-accounting/public-accounts/2024.html" target="_blank" rel="noopener noreferrer">Public Accounts of Canada / Comptes publics du Canada</a>.`;
+    }
+
+    window.onload = function() {
+        const select = document.getElementById('provinceSelect');
+        provincesData.forEach(province => {
+            const opt = document.createElement('option');
+            opt.value = province.code;
+            opt.innerHTML = province.name;
+            if (province.code === "ON") opt.selected = true;
+            select.appendChild(opt);
+        });
+        calculateTaxes();
+    };
+
+    function formatCurrency(value) {
+        return value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+    }
+
+    function buildFederalAllocations(federalTax) {
+        return {
+            health: federalTax * 0.12,
+            educationCare: federalTax * 0.04,
+            seniorsIncome: federalTax * 0.28,
+            indigenousNorthern: federalTax * 0.08,
+            defenseVeterans: federalTax * 0.09,
+            publicDebt: federalTax * 0.105,
+            publicSafety: federalTax * 0.025,
+            infrastructure: federalTax * 0.04,
+            governmentOther: federalTax * 0.22
+        };
+    }
+
+    function buildProvinceCategories(model, provincialTax, propertyTax, fedAlloc) {
+        return {
+            "Health Care": (provincialTax * model.h) + fedAlloc.health,
+            "Education & Child Care": (propertyTax * model.pe) + (provincialTax * model.e) + fedAlloc.educationCare,
+            "Seniors & Income Support": (provincialTax * model.s) + fedAlloc.seniorsIncome,
+            "Indigenous & Northern Services": (provincialTax * model.n) + fedAlloc.indigenousNorthern,
+            "Defense & Veterans": fedAlloc.defenseVeterans,
+            "Public Debt Charges": (provincialTax * model.d) + fedAlloc.publicDebt,
+            "Justice & Public Safety": (provincialTax * model.j) + (propertyTax * model.pj) + fedAlloc.publicSafety,
+            "Transportation & Infrastructure": (provincialTax * model.t) + (propertyTax * model.pt) + fedAlloc.infrastructure,
+            "Local / Municipal Services": (provincialTax * model.l) + (propertyTax * model.lprop),
+            "Government Operations & Other": (provincialTax * model.g) + (propertyTax * model.pg) + fedAlloc.governmentOther
+        };
+    }
+
+    function renderCategoryDetails(categoryName) {
+        const detailEl = document.getElementById('categoryDetail');
+        const category = currentCategoryData.find(item => item.name === categoryName) || currentCategoryData[0];
+
+        if (!category) {
+            detailEl.innerHTML = `
+                <h2>${getText('categoryDetailsTitle')}</h2>
+                <p>${getText('categoryDetailsPrompt')}</p>
+            `;
+            return;
+        }
+
+        const pct = currentTotalTax > 0 ? ((category.value / currentTotalTax) * 100).toFixed(1) : '0.0';
+        detailEl.innerHTML = `
+            <h2>${getCategoryLabel(category.name)}</h2>
+            <div class="amount">${formatCurrency(category.value)} • ${pct}% ${getText('ofFootprint')}</div>
+            <p>${getCategoryDetail(category.name)}</p>
+        `;
+    }
+
+    function renderCategoryList() {
+        const listEl = document.getElementById('categoryList');
+
+        if (!currentCategoryData.length) {
+            listEl.innerHTML = `<li>${getText('emptyList')}</li>`;
+            return;
+        }
+
+        listEl.innerHTML = currentCategoryData.map(item => {
+            const pct = currentTotalTax > 0 ? ((item.value / currentTotalTax) * 100).toFixed(1) : '0.0';
+            return `
+                <li>
+                    <span>${getCategoryLabel(item.name)}</span>
+                    <span class="category-amount">${formatCurrency(item.value)} (${pct}%)</span>
+                    <button type="button" onclick="renderCategoryDetails('${item.name.replace(/'/g, "\\'")}')">${getText('moreInfo')}</button>
+                </li>
+            `;
+        }).join('');
+    }
+
+    function escapeReceiptHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+
+    function printCategoryList() {
+        if (!currentCategoryData.length) {
+            calculateTaxes();
+        }
+        const totalText = document.getElementById('totalDisplay')?.innerText || '';
+        const profileText = document.getElementById('profileDisplay')?.innerText || '';
+        const sourceText = document.getElementById('federalSourceDisplay')?.innerText || '';
+        const rows = currentCategoryData.map(item => {
+            const pct = currentTotalTax > 0 ? ((item.value / currentTotalTax) * 100).toFixed(1) : '0.0';
+            return `<tr><td>${escapeReceiptHtml(getCategoryLabel(item.name))}</td><td>${escapeReceiptHtml(formatCurrency(item.value))}</td><td>${pct}%</td></tr>`;
+        }).join('');
+        const receiptWindow = window.open('', 'taxgalReceipt', 'width=760,height=900');
+        if (!receiptWindow) {
+            window.print();
+            return;
+        }
+        receiptWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>TaxGal Printable Category Receipt</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #17212b; margin: 32px; }
+    .receipt { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    .meta { color: #475569; font-size: 13px; line-height: 1.5; margin-bottom: 18px; }
+    .total { border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-weight: 700; margin: 16px 0; background: #f8fafc; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 10px 8px; text-align: left; vertical-align: top; }
+    th:nth-child(2), th:nth-child(3), td:nth-child(2), td:nth-child(3) { text-align: right; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #475569; }
+    .note { color: #64748b; font-size: 12px; line-height: 1.5; margin-top: 18px; }
+    @media print { body { margin: 18px; } }
+  </style>
+</head>
+<body>
+  <main class="receipt">
+    <h1>TaxGal Category Receipt</h1>
+    <div class="meta">Generated from the calculator estimate. This is educational information, not an official tax statement.</div>
+    <div class="total">${escapeReceiptHtml(totalText)}</div>
+    <table>
+      <thead><tr><th>Category</th><th>Amount</th><th>Share</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="note">${escapeReceiptHtml(profileText)}</div>
+    <div class="note">${escapeReceiptHtml(sourceText)}</div>
+  </main>
+  ${'<script>'}window.onload = () => { window.print(); setTimeout(() => window.close(), 300); };${'</scr' + 'ipt>'}
+</body>
+</html>`);
+        receiptWindow.document.close();
+    }
+
+    function calculateTaxes() {
+        const provinceCode = document.getElementById('provinceSelect').value;
+        const provinceObj = provincesData.find(province => province.code === provinceCode);
+        const profile = provinceObj.profile;
+
+        applyLanguage(provinceObj.language);
+        document.getElementById('profileDisplay').innerHTML = profilesDesc[profile];
+
+        const federalTax = parseFloat(document.getElementById('federalTax').value) || 0;
+        const provincialTax = parseFloat(document.getElementById('provincialTax').value) || 0;
+        const propertyTax = parseFloat(document.getElementById('propertyTax').value) || 0;
+        const totalTax = federalTax + provincialTax + propertyTax;
+
+        currentTotalTax = totalTax;
+        document.getElementById('totalDisplay').innerText = `${getText('totalPrefix')}: ${formatCurrency(totalTax)}`;
+
+        if (totalTax === 0) {
+            currentCategoryData = [];
+            renderCategoryDetails();
+            renderCategoryList();
+            if (taxChart) taxChart.destroy();
+            return;
+        }
+
+        const fedAlloc = buildFederalAllocations(federalTax);
+        const categories = buildProvinceCategories(provinceAllocationModels[profile], provincialTax, propertyTax, fedAlloc);
+        const sortedData = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+        const labels = sortedData.map(item => getCategoryLabel(item[0]));
+        const values = sortedData.map(item => item[1]);
+
+        currentCategoryData = sortedData.map(item => ({ name: item[0], value: item[1] }));
+        renderCategoryDetails(currentCategoryData[0].name);
+        renderCategoryList();
+
+        const ctx = document.getElementById('taxChart').getContext('2d');
+        if (taxChart) taxChart.destroy();
+
+        taxChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        '#8b1e2d', '#b3263a', '#d04b5f', '#ed7b65', '#f2b35d',
+                        '#2f6f73', '#3e8f8d', '#79b7a3', '#7d8794', '#cbd5e1'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                onClick: function(event, elements) {
+                    if (!elements.length) return;
+                    const index = elements[0].index;
+                    renderCategoryDetails(currentCategoryData[index].name);
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.raw;
+                                const pct = ((val / totalTax) * 100).toFixed(1);
+                                return ` ${formatCurrency(val)} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

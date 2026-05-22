@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://canada.taxgal.org/sitemap.xml
